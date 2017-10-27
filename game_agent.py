@@ -300,7 +300,16 @@ class AlphaBetaPlayer(IsolationPlayer):
         self.time_left = time_left
 
         # TODO: finish this function!
-        raise NotImplementedError
+        best_move = (-1, -1)
+
+        try:
+            return self.alphabeta(game, self.search_depth)
+
+        except SearchTimeout:
+            pass  # Handle any actions required after timeout as needed
+
+        # Return the best move from the last completed search iteration
+        return best_move
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf")):
         """Implement depth-limited minimax search with alpha-beta pruning as
@@ -351,4 +360,53 @@ class AlphaBetaPlayer(IsolationPlayer):
             raise SearchTimeout()
 
         # TODO: finish this function!
-        raise NotImplementedError
+        # terminal test with depth checking
+        def terminal_test(game, depth):
+            # time check
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise SearchTimeout()            
+            return depth == 0 or not bool(game.get_legal_moves())
+
+        # min value func
+        def min_value(game, depth, alpha, beta):
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise SearchTimeout()                        
+            if terminal_test(game, depth):
+                # evauation as written in Notes
+                return self.score(game, self)
+            v = float("inf")
+            for m in game.get_legal_moves():
+                # reduce depth each step
+                v = min(v, max_value(
+                    game.forecast_move(m), depth -1, alpha, beta))
+                beta = min(beta, v)
+                if beta <= alpha:
+                    break
+            return v
+
+        # max value func
+        def max_value(game, depth, alpha, beta):
+            if self.time_left() < self.TIMER_THRESHOLD:
+                raise SearchTimeout()                        
+            if terminal_test(game, depth):
+                # evauation as written in Notes
+                return self.score(game, self)
+            v = float("-inf")
+            for m in game.get_legal_moves():
+                # reduce depth each step
+                v = max(v, min_value(
+                    game.forecast_move(m), depth -1, alpha, beta))
+                alpha = max(alpha, v)
+                if beta <= alpha:
+                    break
+            return v
+
+        # decision process - for maximizing player only
+        best_score = float("-inf")
+        best_move = (-1, -1) # default move as in the description
+        for m in game.get_legal_moves():
+            v = min_value(game.forecast_move(m), depth, alpha, beta)
+            if v > best_score:
+                best_score = v
+                best_move = m
+        return best_move
