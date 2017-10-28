@@ -41,6 +41,7 @@ def custom_score(game, player):
     if game.is_winner(player):
         return float("inf")
 
+
     return float(len(game.get_legal_moves(player)))
 
 
@@ -375,44 +376,49 @@ class AlphaBetaPlayer(IsolationPlayer):
         # min value func
         def min_value(game, depth, alpha=float("-inf"), beta=float("inf")):
             if self.time_left() < self.TIMER_THRESHOLD:
-                raise SearchTimeout()                        
+                raise SearchTimeout()
+            best_move = (-1, -1)                        
             if terminal_test(game, depth):
-                # evauation as written in Notes
-                return self.score(game, self)
-            v = float("inf")
+                # evauation as written in Notes and default action
+                return self.score(game, self), best_move
+            best_score = float("inf")
             for m in game.get_legal_moves():
                 # reduce depth for next state
-                v = min(v, max_value(
-                    game.forecast_move(m), depth - 1, alpha, beta))
-                if v <= alpha:
-                    return v
-                beta = min(beta, v)
-            return v
+                score, _ = max_value(game.forecast_move(m), depth - 1, alpha, beta)
+                # update score and action
+                if score < best_score:
+                    best_score = score
+                    best_move = m
+                # if score's smaller than alpha, then cut off
+                if score <= alpha:
+                    return score, m
+                # otherwise update beta
+                beta = min(beta, score)
+            return best_score, best_move
 
         # max value func
         def max_value(game, depth, alpha=float("-inf"), beta=float("inf")):
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()                        
+            best_move = (-1, -1)                        
             if terminal_test(game, depth):
-                # evauation as written in Notes
-                return self.score(game, self)
-            v = float("-inf")
+                # evauation as written in Notes and default action
+                return self.score(game, self), best_move
+            best_score = float("-inf")
             for m in game.get_legal_moves():
-                # reduce depth each step
-                v = max(v, min_value(
-                    game.forecast_move(m), depth - 1, alpha, beta))
-                if v >= beta:
-                    return v
-                alpha = max(alpha, v)
-            return v
+                # reduce depth for next state
+                score, _ = min_value(game.forecast_move(m), depth - 1, alpha, beta)
+                # update
+                if score > best_score:
+                    best_score = score
+                    best_move = m
+                # cut off
+                if score >= beta:
+                    return score, m
+                # update alpha
+                alpha = max(alpha, score)
+            return best_score, best_move
 
         # decision process
-        best_score = float("-inf")
-        best_move = (-1, -1) # default move as in the description
-        for m in game.get_legal_moves():
-            v = max_value(game.forecast_move(m), depth - 1, alpha, beta)
-            if v > best_score:
-                best_score = v
-                best_move = m
-            alpha = max(alpha, best_score)
-        return best_move
+        v, a = max_value(game, depth, alpha, beta)
+        return a
