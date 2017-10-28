@@ -225,7 +225,7 @@ class MinimaxPlayer(IsolationPlayer):
             # time check
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()            
-            return depth == 0 or not bool(game.get_legal_moves())
+            return depth <= 1 or not bool(game.get_legal_moves())
 
         # min value func
         def min_value(game, depth):
@@ -237,7 +237,7 @@ class MinimaxPlayer(IsolationPlayer):
             v = float("inf")
             for m in game.get_legal_moves():
                 # reduce depth each step
-                v = min(v, max_value(game.forecast_move(m), depth -1))
+                v = min(v, max_value(game.forecast_move(m), depth - 1))
             return v
 
         # max value func
@@ -303,8 +303,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_move = (-1, -1)
 
         try:
-            depth = 0
-            while time_left() > 0:
+            depth = 1
+            while self.time_left() > 0:
                 best_move = self.alphabeta(game, depth)
                 depth += 1
     
@@ -369,7 +369,7 @@ class AlphaBetaPlayer(IsolationPlayer):
             # time check
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()            
-            return depth == 0 or not bool(game.get_legal_moves())
+            return depth <= 1 or not bool(game.get_legal_moves())
 
         # min value func
         def min_value(game, depth, alpha, beta):
@@ -382,10 +382,10 @@ class AlphaBetaPlayer(IsolationPlayer):
             for m in game.get_legal_moves():
                 # reduce depth each step
                 v = min(v, max_value(
-                    game.forecast_move(m), depth -1, alpha, beta))
+                    game.forecast_move(m), depth - 1, alpha, beta))
+                if v <= alpha:
+                    return v
                 beta = min(beta, v)
-                if beta <= alpha:
-                    break
             return v
 
         # max value func
@@ -399,17 +399,17 @@ class AlphaBetaPlayer(IsolationPlayer):
             for m in game.get_legal_moves():
                 # reduce depth each step
                 v = max(v, min_value(
-                    game.forecast_move(m), depth -1, alpha, beta))
+                    game.forecast_move(m), depth - 1, alpha, beta))
+                if v >= beta:
+                    return v
                 alpha = max(alpha, v)
-                if beta <= alpha:
-                    break
             return v
 
         # decision process - for maximizing player only
         best_score = float("-inf")
         best_move = (-1, -1) # default move as in the description
         for m in game.get_legal_moves():
-            v = min_value(game.forecast_move(m), depth, alpha, beta)
+            v = max_value(game.forecast_move(m), depth, alpha, beta)
             if v > best_score:
                 best_score = v
                 best_move = m
