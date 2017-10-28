@@ -225,7 +225,7 @@ class MinimaxPlayer(IsolationPlayer):
             # time check
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()            
-            return depth <= 1 or not bool(game.get_legal_moves())
+            return depth <= 0 or not bool(game.get_legal_moves())
 
         # min value func
         def min_value(game, depth):
@@ -236,7 +236,7 @@ class MinimaxPlayer(IsolationPlayer):
                 return self.score(game, self)
             v = float("inf")
             for m in game.get_legal_moves():
-                # reduce depth each step
+                # reduce depth for next state
                 v = min(v, max_value(game.forecast_move(m), depth - 1))
             return v
 
@@ -251,11 +251,11 @@ class MinimaxPlayer(IsolationPlayer):
                 v = max(v, min_value(game.forecast_move(m), depth - 1))
             return v
 
-        # decision process - for maximizing player only
+        # decision process
         best_score = float("-inf")
         best_move = (-1, -1) # default move as in the description
         for m in game.get_legal_moves():
-            v = min_value(game.forecast_move(m), depth)
+            v = min_value(game.forecast_move(m), depth - 1)
             if v > best_score:
                 best_score = v
                 best_move = m
@@ -303,7 +303,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_move = (-1, -1)
 
         try:
-            depth = 1
+            # Iterative Deepening Search
+            depth = 0
             while self.time_left() > 0:
                 best_move = self.alphabeta(game, depth)
                 depth += 1
@@ -369,10 +370,10 @@ class AlphaBetaPlayer(IsolationPlayer):
             # time check
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()            
-            return depth <= 1 or not bool(game.get_legal_moves())
+            return depth <= 0 or not bool(game.get_legal_moves())
 
         # min value func
-        def min_value(game, depth, alpha, beta):
+        def min_value(game, depth, alpha=float("-inf"), beta=float("inf")):
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()                        
             if terminal_test(game, depth):
@@ -380,7 +381,7 @@ class AlphaBetaPlayer(IsolationPlayer):
                 return self.score(game, self)
             v = float("inf")
             for m in game.get_legal_moves():
-                # reduce depth each step
+                # reduce depth for next state
                 v = min(v, max_value(
                     game.forecast_move(m), depth - 1, alpha, beta))
                 if v <= alpha:
@@ -389,7 +390,7 @@ class AlphaBetaPlayer(IsolationPlayer):
             return v
 
         # max value func
-        def max_value(game, depth, alpha, beta):
+        def max_value(game, depth, alpha=float("-inf"), beta=float("inf")):
             if self.time_left() < self.TIMER_THRESHOLD:
                 raise SearchTimeout()                        
             if terminal_test(game, depth):
@@ -405,12 +406,13 @@ class AlphaBetaPlayer(IsolationPlayer):
                 alpha = max(alpha, v)
             return v
 
-        # decision process - for maximizing player only
+        # decision process
         best_score = float("-inf")
         best_move = (-1, -1) # default move as in the description
         for m in game.get_legal_moves():
-            v = max_value(game.forecast_move(m), depth, alpha, beta)
+            v = max_value(game.forecast_move(m), depth - 1, alpha, beta)
             if v > best_score:
                 best_score = v
                 best_move = m
+            alpha = max(alpha, best_score)
         return best_move
