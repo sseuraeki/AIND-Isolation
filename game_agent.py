@@ -10,7 +10,7 @@ class SearchTimeout(Exception):
     pass
 
 
-def custom_score(game, player):
+def custom_score_2(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
@@ -51,6 +51,7 @@ def custom_score(game, player):
 
     # number of legal moves
     own_len = len(own_moves)
+    opp_len = len(opp_moves)
 
     # positions
     center_w, center_h = game.width / 2., game.height / 2.
@@ -59,7 +60,11 @@ def custom_score(game, player):
     max_cdist = center_w ** 2 + center_h ** 2
 
     # default score
-    score = own_len
+    # try to have 3 or more legal moves (treat them equally)
+    if own_len >= 3:
+        score = 3
+    else:
+        score = own_len
 
     # also check if the opp moves left are further from the center
     # find the min center distance from all available opp moves
@@ -69,6 +74,7 @@ def custom_score(game, player):
 
     if (abs(own_x - opp_x) == 1 and abs(own_y - opp_y) == 2) \
     or (abs(own_x - opp_x) == 2 and abs(own_y - opp_y) == 1):
+
         min_cdist = max_cdist
         for m in opp_moves:
             cdist = (center_w - m[0]) ** 2 + (center_h - m[1]) ** 2
@@ -78,7 +84,8 @@ def custom_score(game, player):
             elif cdist < min_cdist:
                 min_cdist = cdist
 
-        # score should be less than 1 at max in order not to override other scores
+        # score should be less than 1 at max
+        # in order not to override other scores
         score += min_cdist / max_cdist
     else:
         # if opp move not taken
@@ -100,7 +107,7 @@ def custom_score(game, player):
 
     return float(score)
 
-def custom_score_2(game, player):
+def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
@@ -129,12 +136,28 @@ def custom_score_2(game, player):
     if game.is_winner(player):
         return float("inf")
 
+    opp = game.get_opponent(player)
+
     own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    opp_moves = len(game.get_legal_moves(opp))
 
-    # just weighted opp_moves
+    # default score
+    score = own_moves - opp_moves
 
-    return float(own_moves - 2 * opp_moves)
+    # try not to be diagonally close to the opp
+    own_y, own_x = game.get_player_location(player)
+    opp_y, opp_x = game.get_player_location(opp)
+
+    if abs(own_x - opp_x) == 1 and abs(own_y - opp_y) == 1:
+        score -= 1
+
+    # also, choose a position closer to the center
+    w, h = game.width / 2., game.height / 2.
+    y, x = game.get_player_location(player)
+
+    cdist = (w - x)**2 + (h - y)**2
+
+    return float(score - cdist * 0.1)
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -165,15 +188,39 @@ def custom_score_3(game, player):
     if game.is_winner(player):
         return float("inf")
 
+    opp = game.get_opponent(player)
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(opp))
+
+    # default score
+    score = own_moves - opp_moves    
+
+    # center coords
     w, h = game.width / 2., game.height / 2.
+
+    # player coords
     y, x = game.get_player_location(player)
 
-    cdist = (w - x)**2 + (h - y)**2
+    # count blank spaces (separate them left and right sides)
+    left_blanks = 0
+    right_blanks = 0
 
-    # custom2 - weighted cdist
+    for blank in game.get_blank_spaces():
+        if blank[0] < w:
+            left_blanks += 1
+        elif blank[0] > w:
+            right_blanks += 1
 
-    return float(custom_score_2(game, player) - cdist * 0.1)
+    # try to move to the side with more blanks
+    if left_blanks > right_blanks:
+        if x < w:
+            score += 1
+    elif right_blanks > left_blanks:
+        if x > w:
+            score += 1
 
+    return float(score)
 
 class IsolationPlayer:
     """Base class for minimax and alphabeta agents -- this class is never
